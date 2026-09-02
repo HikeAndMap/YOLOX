@@ -76,7 +76,11 @@ def main():
         ckpt_file = args.ckpt
 
     # load the model state dict
-    ckpt = torch.load(ckpt_file, map_location="cpu")
+    # weights_only=False: PyTorch 2.6 flipped torch.load's default to True, which uses a restricted
+    # unpickler - our own checkpoints store curr_ap as a raw numpy scalar (from np.mean() in
+    # _do_python_eval), which isn't in the default safe-globals allowlist. Safe here since this is a
+    # checkpoint we just produced ourselves, not an untrusted download.
+    ckpt = torch.load(ckpt_file, map_location="cpu", weights_only=False)
 
     model.eval()
     if "model" in ckpt:
@@ -88,7 +92,12 @@ def main():
     logger.info("loading checkpoint done.")
     dummy_input = torch.randn(args.batch_size, 3, exp.test_size[0], exp.test_size[1])
 
-    torch.onnx._export(
+    # torch.onnx._export was the internal, undocumented API this originally called - removed in
+    # recent PyTorch in favor of the public torch.onnx.export, which now defaults to the newer
+    # Dynamo-based exporter (dynamo=True). YOLOX's custom modules were only ever exercised against
+    # the legacy TorchScript-tracing exporter, so dynamo=False here reproduces the old _export
+    # behavior rather than risking a graph-shape difference from the new exporter path.
+    torch.onnx.export(
         model,
         dummy_input,
         args.output_name,
@@ -97,6 +106,7 @@ def main():
         dynamic_axes={args.input: {0: 'batch'},
                       args.output: {0: 'batch'}} if args.dynamic else None,
         opset_version=args.opset,
+        dynamo=False,
     )
     logger.info("generated onnx model named {}".format(args.output_name))
 
