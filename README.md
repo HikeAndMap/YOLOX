@@ -1,6 +1,32 @@
 <div align="center"><img src="assets/logo.png" width="350"></div>
 <img src="assets/demo.png" >
 
+## About this fork
+
+This is a maintained fork of [Megvii-BaseDetection/YOLOX](https://github.com/Megvii-BaseDetection/YOLOX),
+kept by [HikeAndMap](https://github.com/HikeAndMap) for a ground-control-point (GCP) marker detector used
+in [Mapanan Utilities](https://github.com/HikeAndMap). Upstream has had no real activity since ~Feb 2023
+(the maintainer, Dr. Jian Sun, passed away in 2022) and has 700+ open issues / dozens of open PRs sitting
+unmerged, so bugfixes here aren't waiting on upstream review - see `git log` for the full list, including:
+
+- Several Windows-specific path-handling bugs (`os.path.join` behaving unexpectedly with backslashes
+  and with a colon in a format-spec string)
+- A numpy 2.x compatibility bug in VOC eval's results writer
+- PyTorch 2.6+ compatibility (`torch.load`'s `weights_only=True` default, removed `torch.onnx._export`)
+- A stale annotation-cache bug in the VOC evaluator that crashes eval with a spurious `KeyError` after
+  a dataset is re-labeled/re-tiled between training runs (also filed upstream as
+  [#1911](https://github.com/Megvii-BaseDetection/YOLOX/pull/1911) - likely the real cause of several
+  long-open, never-diagnosed issues there)
+- `tools/train.py` silently exiting with code 0 after an unhandled training exception, making crashed
+  runs indistinguishable from successful ones to any calling script (also filed upstream as
+  [#1910](https://github.com/Megvii-BaseDetection/YOLOX/pull/1910))
+
+**This fork is configured for single-class detection, not the standard 20-class Pascal VOC set.**
+`yolox/data/datasets/voc_classes.py`'s `VOC_CLASSES` has been cut down to a single class,
+`("gcp_marker",)`. If you're using this fork as a base for a different VOC-format dataset, restore
+`VOC_CLASSES` to the standard 20 classes (or your own) before training - everything else here behaves
+like stock YOLOX.
+
 ## Introduction
 YOLOX is an anchor-free version of YOLO, with a simpler design but better performance! It aims to bridge the gap between research and industrial communities.
 For more details, please refer to our [report on Arxiv](https://arxiv.org/abs/2107.08430).
