@@ -135,7 +135,7 @@ class VOCDetection(CacheDataset):
         self.annotations = self._load_coco_annotations()
 
         path_filename = [
-            (self._imgpath % self.ids[i]).split(self.root + "/")[1]
+            (self._imgpath % self.ids[i]).split(self.root + os.sep)[1]
             for i in range(self.num_imgs)
         ]
         super().__init__(
@@ -261,7 +261,7 @@ class VOCDetection(CacheDataset):
                 for im_ind, index in enumerate(self.ids):
                     index = index[1]
                     dets = all_boxes[cls_ind][im_ind]
-                    if dets == []:
+                    if len(dets) == 0:
                         continue
                     for k in range(dets.shape[0]):
                         f.write(
@@ -278,7 +278,11 @@ class VOCDetection(CacheDataset):
     def _do_python_eval(self, output_dir="output", iou=0.5):
         rootpath = os.path.join(self.root, "VOC" + self._year)
         name = self.image_set[0][1]
-        annopath = os.path.join(rootpath, "Annotations", "{:s}.xml")
+        # Not os.path.join(rootpath, "Annotations", "{:s}.xml") - on Windows, os.path.join treats any
+        # component whose 2nd character is ":" as a drive-letter path and discards everything joined
+        # before it. "{:s}.xml" has a colon at index 1 purely by coincidence of format-spec syntax, so
+        # that call silently collapses to just "{:s}.xml", losing the whole directory prefix.
+        annopath = os.path.join(rootpath, "Annotations") + os.sep + "{:s}.xml"
         imagesetfile = os.path.join(rootpath, "ImageSets", "Main", name + ".txt")
         cachedir = os.path.join(
             self.root, "annotations_cache", "VOC" + self._year, name
