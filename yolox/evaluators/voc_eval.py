@@ -100,6 +100,23 @@ def voc_eval(
         # load
         with open(cachefile, "rb") as f:
             recs = pickle.load(f)
+        # The cache is keyed by imagename and never invalidated on its own, so a dataset
+        # that was re-tiled/regenerated after this cache was written (new or renamed images)
+        # leaves it stale, causing a KeyError below instead of a warning. Rebuild it whenever
+        # it no longer covers every image in the current imagesetfile.
+        missing = [name for name in imagenames if name not in recs]
+        if missing:
+            print(
+                f"Annotation cache {cachefile} is stale "
+                f"({len(missing)} of {len(imagenames)} image(s) missing) - rebuilding."
+            )
+            recs = {}
+            for i, imagename in enumerate(imagenames):
+                recs[imagename] = parse_rec(annopath.format(imagename))
+                if i % 100 == 0:
+                    print(f"Reading annotation for {i + 1}/{len(imagenames)}")
+            with open(cachefile, "wb") as f:
+                pickle.dump(recs, f)
 
     # extract gt objects for this class
     class_recs = {}
