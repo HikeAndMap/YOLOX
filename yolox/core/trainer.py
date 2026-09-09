@@ -103,7 +103,7 @@ class Trainer:
         inps, targets = self.exp.preprocess(inps, targets, self.input_size)
         data_end_time = time.time()
 
-        with torch.cuda.amp.autocast(enabled=self.amp_training):
+        with torch.amp.autocast('cuda', enabled=self.amp_training):
             outputs = self.model(inps, targets)
 
         loss = outputs["total_loss"]
