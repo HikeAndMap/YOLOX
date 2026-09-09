@@ -236,6 +236,14 @@ class Trainer:
             all_reduce_norm(self.model)
             self.evaluate_and_save_model()
 
+        # Release PyTorch's cached (but unused) CUDA blocks once per epoch. Without this, a
+        # single oversized multiscale batch (large resolution + a mosaic with many GT boxes)
+        # can push the process past dedicated VRAM, forcing Windows to back part of the
+        # allocation with system RAM ("shared GPU memory") - and that spillover otherwise
+        # persists for the rest of the run, since the allocator never shrinks its reservation
+        # on its own.
+        torch.cuda.empty_cache()
+
     def before_iter(self):
         pass
 
